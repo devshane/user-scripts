@@ -32,29 +32,182 @@
 .highlighted {
   background-color: aliceblue !important;
 }
-.clean-up-reddit-status {
+
+/* ── Toolbar ── */
+.cur-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   font-size: 12px;
-  padding: 4px;
-  margin-left: 4px;
-  background-color: #efefef;
+  background: linear-gradient(to bottom, #fafafa, #f0f0f0);
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
 }
-.clean-up-reddit-toggle {
-  font-size: 12px;
-  padding: 4px 8px;
-  margin-left: 8px;
-  background-color: #efefef;
-  border: 1px solid #ccc;
+.cur-brand {
+  font-weight: 700;
+  color: #333;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.cur-sep {
+  width: 1px;
+  height: 16px;
+  background: #d0d0d0;
+  flex-shrink: 0;
+}
+.cur-stat {
+  position: relative;
+  color: #666;
+  white-space: nowrap;
+  cursor: default;
+}
+.cur-stat-count {
+  font-variant-numeric: tabular-nums;
+}
+.cur-stat-count.has-removals {
+  border-bottom: 1px dotted #999;
+}
+
+/* Hover tooltip for breakdown */
+.cur-stat-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a2a;
+  color: #e8e8e8;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1001;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  line-height: 1.5;
+}
+.cur-stat-tooltip::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #2a2a2a;
+}
+.cur-stat:hover .cur-stat-tooltip {
+  display: block;
+}
+.cur-stat-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cur-stat-tooltip-label {
+  color: #aaa;
+}
+.cur-stat-tooltip-value {
+  font-weight: 600;
+  color: #fff;
+  text-align: right;
+}
+.cur-stat-tooltip-divider {
+  height: 1px;
+  background: #555;
+  margin: 4px 0;
+}
+
+.cur-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ── Buttons ── */
+.cur-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  background: #fff;
+  border: 1px solid #c8c8c8;
   border-radius: 3px;
   cursor: pointer;
   user-select: none;
+  color: #444;
+  line-height: 1.4;
+  transition: background 0.1s, border-color 0.1s;
 }
-.clean-up-reddit-toggle:hover {
-  background-color: #e0e0e0;
+.cur-btn:hover {
+  background: #eaeaea;
+  border-color: #aaa;
 }
-.clean-up-reddit-toggle.disabled {
-  background-color: #ffcccc;
-  border-color: #cc9999;
+.cur-btn:active {
+  background: #ddd;
 }
+.cur-btn-on {
+  background: #e8f4e8;
+  border-color: #8cb88c;
+  color: #2d6e2d;
+}
+.cur-btn-on:hover {
+  background: #d8edd8;
+  border-color: #6da06d;
+}
+.cur-btn-off {
+  background: #fce8e8;
+  border-color: #d4a0a0;
+  color: #993333;
+}
+.cur-btn-off:hover {
+  background: #f8d8d8;
+  border-color: #c08080;
+}
+
+/* ── Dropdown ── */
+.cur-dropdown {
+  position: relative;
+}
+.cur-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #c8c8c8;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 110px;
+  overflow: hidden;
+}
+.cur-dropdown.open .cur-dropdown-menu {
+  display: block;
+}
+.cur-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #444;
+}
+.cur-dropdown-menu button:hover {
+  background: #f0f0f0;
+}
+.cur-dropdown-menu button + button {
+  border-top: 1px solid #eee;
+}
+
+/* ── Modal ── */
 .clean-up-reddit-modal-backdrop {
   position: fixed;
   top: 0;
@@ -137,41 +290,8 @@
 .clean-up-reddit-modal-buttons .cancel-btn:hover {
   background: #e0e0e0;
 }
-.clean-up-reddit-dropdown {
-  position: relative;
-  display: inline-block;
-  margin-left: 8px;
-}
-.clean-up-reddit-dropdown-menu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 120px;
-  margin-top: 2px;
-}
-.clean-up-reddit-dropdown.open .clean-up-reddit-dropdown-menu {
-  display: block;
-}
-.clean-up-reddit-dropdown-menu button {
-  display: block;
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 12px;
-  text-align: left;
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.clean-up-reddit-dropdown-menu button:hover {
-  background: #e0e0e0;
-}
+
+/* ── Inline hide button ── */
 .clean-up-reddit-hide-sub {
   font-size: 10px;
   color: #888;
@@ -200,28 +320,61 @@
         return;
     }
 
+    // ── Build toolbar ──
     const status = document.createElement("div");
     status.className = "spacer";
 
+    const toolbar = document.createElement("div");
+    toolbar.className = "cur-toolbar";
+
+    // Brand label
+    const brand = document.createElement("span");
+    brand.className = "cur-brand";
+    brand.textContent = "CleanUpReddit";
+    toolbar.appendChild(brand);
+
+    // Separator
+    const sep1 = document.createElement("span");
+    sep1.className = "cur-sep";
+    toolbar.appendChild(sep1);
+
+    // Status area (count + hover tooltip)
+    const stat = document.createElement("div");
+    stat.className = "cur-stat";
+
+    const statCount = document.createElement("span");
+    statCount.className = "cur-stat-count";
+    statCount.textContent = "";
+    stat.appendChild(statCount);
+
+    const statTooltip = document.createElement("div");
+    statTooltip.className = "cur-stat-tooltip";
+    stat.appendChild(statTooltip);
+
+    toolbar.appendChild(stat);
+
+    // Actions (pushed to the right)
+    const actions = document.createElement("div");
+    actions.className = "cur-actions";
+
+    // Filter ON/OFF toggle
     const toggle = document.createElement("button");
-    toggle.className = "clean-up-reddit-toggle" + (enabled ? "" : " disabled");
-    toggle.innerText = enabled ? "✓ Filter ON" : "✗ Filter OFF";
+    toggle.className = "cur-btn " + (enabled ? "cur-btn-on" : "cur-btn-off");
+    toggle.textContent = enabled ? "Filter ON" : "Filter OFF";
     toggle.addEventListener("click", () => {
         enabled = !enabled;
         GM_setValue(STORAGE_KEY, enabled);
-        toggle.innerText = enabled ? "✓ Filter ON" : "✗ Filter OFF";
-        toggle.classList.toggle("disabled", !enabled);
         location.reload();
     });
-    status.appendChild(toggle);
+    actions.appendChild(toggle);
 
     // Filters dropdown (Edit / Export / Import)
     const dropdown = document.createElement("div");
-    dropdown.className = "clean-up-reddit-dropdown";
+    dropdown.className = "cur-dropdown";
 
     const dropdownBtn = document.createElement("button");
-    dropdownBtn.className = "clean-up-reddit-toggle";
-    dropdownBtn.innerText = "Filters ▾";
+    dropdownBtn.className = "cur-btn";
+    dropdownBtn.textContent = "Filters \u25BE";
     dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         dropdown.classList.toggle("open");
@@ -229,7 +382,7 @@
     dropdown.appendChild(dropdownBtn);
 
     const menu = document.createElement("div");
-    menu.className = "clean-up-reddit-dropdown-menu";
+    menu.className = "cur-dropdown-menu";
 
     const editItem = document.createElement("button");
     editItem.textContent = "Edit Filters";
@@ -280,29 +433,31 @@
     menu.appendChild(importItem);
 
     dropdown.appendChild(menu);
-    status.appendChild(dropdown);
+    actions.appendChild(dropdown);
 
-    // Close dropdown when clicking outside
     document.addEventListener("click", () => dropdown.classList.remove("open"));
 
     // Open/Close All Images toggle
     let imagesOpen = false;
     const toggleImagesBtn = document.createElement("button");
-    toggleImagesBtn.className = "clean-up-reddit-toggle";
-    toggleImagesBtn.innerText = "Open All Images";
+    toggleImagesBtn.className = "cur-btn";
+    toggleImagesBtn.textContent = "Open All Images";
     toggleImagesBtn.addEventListener("click", () => {
         if (imagesOpen) {
             const expandos = document.querySelectorAll("div.expando-button.expanded");
             expandos.forEach((btn) => btn.click());
-            toggleImagesBtn.innerText = "Open All Images";
+            toggleImagesBtn.textContent = "Open All Images";
         } else {
             const expandos = document.querySelectorAll("div.expando-button.collapsed");
             expandos.forEach((btn) => btn.click());
-            toggleImagesBtn.innerText = "Close All Images";
+            toggleImagesBtn.textContent = "Close All Images";
         }
         imagesOpen = !imagesOpen;
     });
-    status.appendChild(toggleImagesBtn);
+    actions.appendChild(toggleImagesBtn);
+
+    toolbar.appendChild(actions);
+    status.appendChild(toolbar);
 
     // Modal functions
     function openModal() {
@@ -424,17 +579,11 @@
         subsTextarea.focus();
     }
 
-    const span = document.createElement("span");
-    span.className = "clean-up-reddit-status dropdown-title lightdrop";
-    span.innerText = "";
-    status.appendChild(span);
     if (anchor === menuArea) {
         menuArea.after(status);
     } else {
         anchor.parentNode.insertBefore(status, anchor);
     }
-
-    const setStatusMessage = (msg) => (span.innerText = msg);
 
     function addSubToFilter(subName) {
         const storedSubs = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
@@ -449,7 +598,8 @@
 
     setTimeout(() => {
         if (!enabled) {
-            setStatusMessage("Filter disabled");
+            statCount.textContent = "disabled";
+            statCount.style.color = "#999";
             return;
         }
 
@@ -542,38 +692,36 @@
             tryRemoveByTitle(thing);
         });
 
-        let statusMsg =
-            "CleanupReddit: removed " +
-            removed +
-            " post" +
-            (removed !== 1 ? "s" : "");
+        statCount.textContent = removed > 0
+            ? `${removed} removed`
+            : "0 removed";
 
         if (removed > 0) {
-            const titleCounts = {};
-            let subsTotal = 0;
-
-            Object.entries(removalCounts).forEach(([key, count]) => {
-                if (key.startsWith("sub:")) {
-                    subsTotal += count;
-                } else {
-                    titleCounts[key] = count;
-                }
-            });
-
-            const breakdown = [];
-            if (subsTotal > 0) {
-                breakdown.push(`subs: ${subsTotal}`);
-            }
-
-            Object.entries(titleCounts)
-                .sort((a, b) => b[1] - a[1])
-                .forEach(([key, count]) => {
-                    breakdown.push(`${key}: ${count}`);
+            statCount.classList.add("has-removals");
+            statTooltip.innerHTML = "";
+            Object.entries(removalCounts)
+                .sort((a, b) => {
+                    const aIsSub = a[0].startsWith("sub:");
+                    const bIsSub = b[0].startsWith("sub:");
+                    if (aIsSub !== bIsSub) return aIsSub ? 1 : -1;
+                    return b[1] - a[1];
+                })
+                .forEach(([key, count], i, arr) => {
+                    const isSub = key.startsWith("sub:");
+                    const prevIsSub = i > 0 && arr[i - 1][0].startsWith("sub:");
+                    if (isSub && !prevIsSub && i > 0) {
+                        const hr = document.createElement("div");
+                        hr.className = "cur-stat-tooltip-divider";
+                        statTooltip.appendChild(hr);
+                    }
+                    const label = isSub ? key.slice(4) : key;
+                    const row = document.createElement("div");
+                    row.className = "cur-stat-tooltip-row";
+                    row.innerHTML =
+                        `<span class="cur-stat-tooltip-label">${label}</span>` +
+                        `<span class="cur-stat-tooltip-value">${count}</span>`;
+                    statTooltip.appendChild(row);
                 });
-
-            statusMsg += " (" + breakdown.join(", ") + ")";
         }
-
-        setStatusMessage(statusMsg);
     }, 100);
 })();
