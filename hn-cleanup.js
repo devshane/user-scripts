@@ -3,9 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://news.ycombinator.com/*
 // @grant       none
-// @version     1.1
+// @version     1.2
 // @author      https://github.com/devshane
 // @description Custom styling, comment collapsing, and low-engagement post filtering for Hacker News
+// @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/hn-cleanup.js
+// @downloadURL https://raw.githubusercontent.com/devshane/user-scripts/main/hn-cleanup.js
 // ==/UserScript==
 (function () {
     console.log('[ViolentMonkey] HN Cleanup');

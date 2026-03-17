@@ -5,9 +5,11 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_setClipboard
-// @version     1.2
+// @version     1.3
 // @author      https://github.com/devshane
 // @description Clean up reddit by filtering posts by subreddit and title keywords
+// @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/clean-up-reddit.js
+// @downloadURL https://raw.githubusercontent.com/devshane/user-scripts/main/clean-up-reddit.js
 // ==/UserScript==
 (function () {
     // Storage keys

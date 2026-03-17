@@ -3,9 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://*/*
 // @grant       none
-// @version     1.0
+// @version     1.1
 // @author      https://github.com/devshane
 // @description Redirect Twitter and YouTube links to alternative frontends
+// @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/redirect-links.js
+// @downloadURL https://raw.githubusercontent.com/devshane/user-scripts/main/redirect-links.js
 // ==/UserScript==
 (function () {
     console.log('[ViolentMonkey] Redirecting links');
