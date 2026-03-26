@@ -29,6 +29,16 @@
         return sub.replace(/^r\//i, "").toLowerCase();
     }
 
+    function parseHighlightEntry(entry) {
+        const i = entry.lastIndexOf(":");
+        if (i > 0) {
+            const pattern = entry.slice(0, i).trim();
+            const color = entry.slice(i + 1).trim();
+            if (pattern && color) return { pattern, color };
+        }
+        return { pattern: entry.trim(), color: "aliceblue" };
+    }
+
     const styleEl = document.createElement("style");
     styleEl.innerHTML = `
 .highlighted {
@@ -359,24 +369,13 @@
     const actions = document.createElement("div");
     actions.className = "cur-actions";
 
-    // Filter ON/OFF toggle
-    const toggle = document.createElement("button");
-    toggle.className = "cur-btn " + (enabled ? "cur-btn-on" : "cur-btn-off");
-    toggle.textContent = enabled ? "Filter ON" : "Filter OFF";
-    toggle.addEventListener("click", () => {
-        enabled = !enabled;
-        GM_setValue(STORAGE_KEY, enabled);
-        location.reload();
-    });
-    actions.appendChild(toggle);
-
-    // Filters dropdown (Edit / Export / Import)
+    // Filters dropdown (ON/OFF toggle + Edit / Export / Import)
     const dropdown = document.createElement("div");
     dropdown.className = "cur-dropdown";
 
     const dropdownBtn = document.createElement("button");
-    dropdownBtn.className = "cur-btn";
-    dropdownBtn.textContent = "Filters \u25BE";
+    dropdownBtn.className = "cur-btn " + (enabled ? "cur-btn-on" : "cur-btn-off");
+    dropdownBtn.textContent = enabled ? "Filters ON \u25BE" : "Filters OFF \u25BE";
     dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         dropdown.classList.toggle("open");
@@ -385,6 +384,15 @@
 
     const menu = document.createElement("div");
     menu.className = "cur-dropdown-menu";
+
+    const toggleItem = document.createElement("button");
+    toggleItem.textContent = enabled ? "Turn Off" : "Turn On";
+    toggleItem.addEventListener("click", () => {
+        enabled = !enabled;
+        GM_setValue(STORAGE_KEY, enabled);
+        location.reload();
+    });
+    menu.appendChild(toggleItem);
 
     const editItem = document.createElement("button");
     editItem.textContent = "Edit Filters";
@@ -516,7 +524,7 @@
 
         const highlightHint = document.createElement("div");
         highlightHint.className = "hint";
-        highlightHint.textContent = "One per line (e.g., r/baseball)";
+        highlightHint.textContent = "One per line, optional color after colon (e.g., r/baseball, r/nfl:lightgreen)";
         modal.appendChild(highlightHint);
 
         const highlightTextarea = document.createElement("textarea");
@@ -616,7 +624,13 @@
         );
         const subsToHighlight = JSON.parse(
             GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]"),
-        );
+        ).map(parseHighlightEntry);
+
+        // Inject a CSS rule for each highlight entry so colors survive DOM manipulation
+        subsToHighlight.forEach(({ pattern, color }) => {
+            const cls = `cur-hl-${normalizeSubFilter(pattern)}`;
+            styleEl.sheet.insertRule(`.${cls} { background-color: ${color} !important; }`);
+        });
 
         let removed = 0;
         const removalCounts = {};
@@ -639,11 +653,11 @@
         }
 
         function tryHighlightSub(subLink, subName) {
-            for (const sub of subsToHighlight) {
-                if (subName === normalizeSubFilter(sub)) {
+            for (const { pattern } of subsToHighlight) {
+                if (subName === normalizeSubFilter(pattern)) {
                     const entry = subLink.closest(".entry");
                     if (entry) {
-                        entry.classList.add("highlighted");
+                        entry.classList.add(`cur-hl-${subName}`);
                     }
                     break;
                 }
