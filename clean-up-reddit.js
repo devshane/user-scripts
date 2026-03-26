@@ -614,69 +614,85 @@
         }
 
         // Load filter lists from storage (only when enabled)
-        const subsToExclude = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
-        const titlesToExclude = JSON.parse(GM_getValue(STORAGE_KEY_TITLES, "[]")).map(
-            (keyword) =>
-                new RegExp(
-                    `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-                    "i",
-                ),
+        // Sub exclusion: Set for O(1) lookup, Map to recover original name for stats
+        const subsRaw = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
+        const excludeSet = new Set();
+        const excludeOriginal = new Map();
+        for (const sub of subsRaw) {
+            const norm = normalizeSubFilter(sub);
+            excludeSet.add(norm);
+            if (!excludeOriginal.has(norm)) excludeOriginal.set(norm, sub);
+        }
+
+        // Title keywords: combined regex for fast rejection, individual regexes to identify match
+        const titleKeywords = JSON.parse(GM_getValue(STORAGE_KEY_TITLES, "[]"));
+        const escapedKeywords = titleKeywords.map((kw) =>
+            kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
         );
-        const subsToHighlight = JSON.parse(
-            GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]"),
-        ).map(parseHighlightEntry);
+        const combinedTitleRegex =
+            escapedKeywords.length > 0
+                ? new RegExp(`\\b(?:${escapedKeywords.join("|")})\\b`, "i")
+                : null;
+        const titleRegexes = escapedKeywords.map(
+            (escaped) => new RegExp(`\\b${escaped}\\b`, "i"),
+        );
+
+        // Sub highlights: Map for O(1) lookup
+        const highlightMap = new Map();
+        for (const entry of JSON.parse(GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]"))) {
+            const { pattern, color } = parseHighlightEntry(entry);
+            highlightMap.set(normalizeSubFilter(pattern), color);
+        }
 
         // Inject a CSS rule for each highlight entry so colors survive DOM manipulation
-        subsToHighlight.forEach(({ pattern, color }) => {
-            const cls = `cur-hl-${normalizeSubFilter(pattern)}`;
-            styleEl.sheet.insertRule(`.${cls} { background-color: ${color} !important; }`);
-        });
+        for (const [subName, color] of highlightMap) {
+            styleEl.sheet.insertRule(
+                `.cur-hl-${subName} { background-color: ${color} !important; }`,
+            );
+        }
 
         let removed = 0;
         const removalCounts = {};
 
         function tryRemoveBySub(thing, subLink, subName) {
-            for (const sub of subsToExclude) {
-                if (subName === normalizeSubFilter(sub)) {
-                    console.log(
-                        "[ViolentMonkey] removing thing, it matches " + sub,
-                        subLink.href,
-                    );
-                    thing.remove();
-                    removed++;
-                    const key = `sub:${sub}`;
-                    removalCounts[key] = (removalCounts[key] || 0) + 1;
-                    return true;
-                }
-            }
-            return false;
+            if (!excludeSet.has(subName)) return false;
+            const sub = excludeOriginal.get(subName);
+            console.log(
+                "[ViolentMonkey] removing thing, it matches " + sub,
+                subLink.href,
+            );
+            thing.remove();
+            removed++;
+            const key = `sub:${sub}`;
+            removalCounts[key] = (removalCounts[key] || 0) + 1;
+            return true;
         }
 
         function tryHighlightSub(subLink, subName) {
-            for (const { pattern } of subsToHighlight) {
-                if (subName === normalizeSubFilter(pattern)) {
-                    const entry = subLink.closest(".entry");
-                    if (entry) {
-                        entry.classList.add(`cur-hl-${subName}`);
-                    }
-                    break;
-                }
+            if (!highlightMap.has(subName)) return;
+            const entry = subLink.closest(".entry");
+            if (entry) {
+                entry.classList.add(`cur-hl-${subName}`);
             }
         }
 
         function tryRemoveByTitle(thing) {
+            if (!combinedTitleRegex) return false;
             const title = thing.querySelector('a[class*="title"]');
             if (!title) return false;
-            for (const regex of titlesToExclude) {
-                if (title.innerText.match(regex)) {
+            const text = title.innerText;
+            if (!combinedTitleRegex.test(text)) return false;
+            // Match found — identify which keyword for stats
+            for (let i = 0; i < titleRegexes.length; i++) {
+                if (titleRegexes[i].test(text)) {
                     console.log(
-                        "[ViolentMonkey] removing thing, title matches " + regex,
-                        title.innerText,
+                        "[ViolentMonkey] removing thing, title matches " + titleRegexes[i],
+                        text,
                     );
                     thing.remove();
                     removed++;
-                    removalCounts[regex.source] =
-                        (removalCounts[regex.source] || 0) + 1;
+                    removalCounts[titleRegexes[i].source] =
+                        (removalCounts[titleRegexes[i].source] || 0) + 1;
                     return true;
                 }
             }
