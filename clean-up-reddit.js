@@ -2,10 +2,8 @@
 // @name        Clean up reddit.com
 // @namespace   Violentmonkey Scripts
 // @match       https://old.reddit.com/*
-// @grant       GM_getValue
-// @grant       GM_setValue
-// @grant       GM_setClipboard
-// @version     1.3
+// @grant       none
+// @version     1.4
 // @author      https://github.com/devshane
 // @description Clean up reddit by filtering posts by subreddit and title keywords
 // @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/clean-up-reddit.js
@@ -18,7 +16,19 @@
     const STORAGE_KEY_TITLES = "clean-up-reddit-titles";
     const STORAGE_KEY_HIGHLIGHT = "clean-up-reddit-highlight";
 
-    let enabled = GM_getValue(STORAGE_KEY, true); // default to enabled
+    function loadValue(key, defaultValue) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw !== null) return JSON.parse(raw);
+        } catch (_) {}
+        return defaultValue;
+    }
+
+    function storeValue(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+    }
+
+    let enabled = loadValue(STORAGE_KEY, true); // default to enabled
 
     function getSubName(href) {
         const match = href.match(/\/r\/([^/]+)/i);
@@ -27,6 +37,11 @@
 
     function normalizeSubFilter(sub) {
         return sub.replace(/^r\//i, "").toLowerCase();
+    }
+
+    const collator = new Intl.Collator("en", { sensitivity: "base" });
+    function sortFilters(arr) {
+        return arr.sort((a, b) => collator.compare(a, b));
     }
 
     function parseHighlightEntry(entry) {
@@ -215,7 +230,7 @@
 .cur-dropdown-menu button:hover {
   background: #f0f0f0;
 }
-.cur-dropdown-menu button + button {
+.cur-dropdown-menu button.cur-dropdown-sep {
   border-top: 1px solid #eee;
 }
 
@@ -303,6 +318,28 @@
   background: #e0e0e0;
 }
 
+/* ── Toast ── */
+.cur-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #2a2a2a;
+  color: #e8e8e8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.cur-toast.visible {
+  opacity: 1;
+}
+
 /* ── Inline hide button ── */
 .clean-up-reddit-hide-sub {
   font-size: 10px;
@@ -315,6 +352,18 @@
   color: #c00;
 }`;
     document.head.appendChild(styleEl);
+
+    function showToast(message, duration = 2000) {
+        const toast = document.createElement("div");
+        toast.className = "cur-toast";
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add("visible"));
+        setTimeout(() => {
+            toast.classList.remove("visible");
+            setTimeout(() => toast.remove(), 200);
+        }, duration);
+    }
 
     if (location.pathname.includes("/comments/")) {
         return;
@@ -389,12 +438,13 @@
     toggleItem.textContent = enabled ? "Turn Off" : "Turn On";
     toggleItem.addEventListener("click", () => {
         enabled = !enabled;
-        GM_setValue(STORAGE_KEY, enabled);
+        storeValue(STORAGE_KEY, enabled);
         location.reload();
     });
     menu.appendChild(toggleItem);
 
     const editItem = document.createElement("button");
+    editItem.className = "cur-dropdown-sep";
     editItem.textContent = "Edit Filters";
     editItem.addEventListener("click", () => {
         dropdown.classList.remove("open");
@@ -406,21 +456,17 @@
     exportItem.textContent = "Export";
     exportItem.addEventListener("click", () => {
         const data = {
-            subs: JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]")),
-            titles: JSON.parse(GM_getValue(STORAGE_KEY_TITLES, "[]")),
-            highlight: JSON.parse(GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]")),
+            subs: loadValue(STORAGE_KEY_SUBS, []),
+            titles: loadValue(STORAGE_KEY_TITLES, []),
+            highlight: loadValue(STORAGE_KEY_HIGHLIGHT, []),
         };
         const json = JSON.stringify(data, null, 2);
-        try {
-            GM_setClipboard(json, "text");
-        } catch (_) {
-            navigator.clipboard.writeText(json);
-        }
-        exportItem.textContent = "Copied!";
-        setTimeout(() => {
-            exportItem.textContent = "Export";
-            dropdown.classList.remove("open");
-        }, 1500);
+        dropdown.classList.remove("open");
+        navigator.clipboard.writeText(json).then(() => {
+            showToast("Filters copied to clipboard");
+        }).catch(() => {
+            showToast("Failed to copy to clipboard");
+        });
     });
     menu.appendChild(exportItem);
 
@@ -432,9 +478,9 @@
         if (!input) return;
         try {
             const data = JSON.parse(input);
-            if (data.subs) GM_setValue(STORAGE_KEY_SUBS, JSON.stringify(data.subs));
-            if (data.titles) GM_setValue(STORAGE_KEY_TITLES, JSON.stringify(data.titles));
-            if (data.highlight) GM_setValue(STORAGE_KEY_HIGHLIGHT, JSON.stringify(data.highlight));
+            if (data.subs) storeValue(STORAGE_KEY_SUBS, data.subs);
+            if (data.titles) storeValue(STORAGE_KEY_TITLES, data.titles);
+            if (data.highlight) storeValue(STORAGE_KEY_HIGHLIGHT, data.highlight);
             location.reload();
         } catch (e) {
             alert("Invalid JSON: " + e.message);
@@ -471,11 +517,9 @@
 
     // Modal functions
     function openModal() {
-        const storedSubs = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
-        const storedTitles = JSON.parse(GM_getValue(STORAGE_KEY_TITLES, "[]"));
-        const storedHighlight = JSON.parse(
-            GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]"),
-        );
+        const storedSubs = loadValue(STORAGE_KEY_SUBS, []);
+        const storedTitles = loadValue(STORAGE_KEY_TITLES, []);
+        const storedHighlight = loadValue(STORAGE_KEY_HIGHLIGHT, []);
 
         const backdrop = document.createElement("div");
         backdrop.className = "clean-up-reddit-modal-backdrop";
@@ -567,9 +611,9 @@
                 .split("\n")
                 .map((line) => line.trim())
                 .filter((line) => line);
-            GM_setValue(STORAGE_KEY_SUBS, JSON.stringify(newSubs));
-            GM_setValue(STORAGE_KEY_TITLES, JSON.stringify(newTitles));
-            GM_setValue(STORAGE_KEY_HIGHLIGHT, JSON.stringify(newHighlight));
+            storeValue(STORAGE_KEY_SUBS, sortFilters(newSubs));
+            storeValue(STORAGE_KEY_TITLES, sortFilters(newTitles));
+            storeValue(STORAGE_KEY_HIGHLIGHT, sortFilters(newHighlight));
             location.reload();
         }
 
@@ -596,12 +640,12 @@
     }
 
     function addSubToFilter(subName) {
-        const storedSubs = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
+        const storedSubs = loadValue(STORAGE_KEY_SUBS, []);
         if (
             !storedSubs.some((entry) => entry.toLowerCase() === subName.toLowerCase())
         ) {
             storedSubs.push(subName);
-            GM_setValue(STORAGE_KEY_SUBS, JSON.stringify(storedSubs));
+            storeValue(STORAGE_KEY_SUBS, sortFilters(storedSubs));
         }
         location.reload();
     }
@@ -615,7 +659,7 @@
 
         // Load filter lists from storage (only when enabled)
         // Sub exclusion: Set for O(1) lookup, Map to recover original name for stats
-        const subsRaw = JSON.parse(GM_getValue(STORAGE_KEY_SUBS, "[]"));
+        const subsRaw = loadValue(STORAGE_KEY_SUBS, []);
         const excludeSet = new Set();
         const excludeOriginal = new Map();
         for (const sub of subsRaw) {
@@ -625,7 +669,7 @@
         }
 
         // Title keywords: combined regex for fast rejection, individual regexes to identify match
-        const titleKeywords = JSON.parse(GM_getValue(STORAGE_KEY_TITLES, "[]"));
+        const titleKeywords = loadValue(STORAGE_KEY_TITLES, []);
         const escapedKeywords = titleKeywords.map((kw) =>
             kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
         );
@@ -639,7 +683,7 @@
 
         // Sub highlights: Map for O(1) lookup
         const highlightMap = new Map();
-        for (const entry of JSON.parse(GM_getValue(STORAGE_KEY_HIGHLIGHT, "[]"))) {
+        for (const entry of loadValue(STORAGE_KEY_HIGHLIGHT, [])) {
             const { pattern, color } = parseHighlightEntry(entry);
             highlightMap.set(normalizeSubFilter(pattern), color);
         }
