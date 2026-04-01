@@ -3,7 +3,7 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://old.reddit.com/*
 // @grant       none
-// @version     1.4
+// @version     1.5
 // @author      https://github.com/devshane
 // @description Clean up reddit by filtering posts by subreddit and title keywords
 // @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/clean-up-reddit.js
@@ -42,6 +42,14 @@
     const collator = new Intl.Collator("en", { sensitivity: "base" });
     function sortFilters(arr) {
         return arr.sort((a, b) => collator.compare(a, b));
+    }
+
+    function parseSubFilter(entry) {
+        const m = entry.match(/^\/(.+)\/([gimsuy]*)$/);
+        if (m) {
+            try { return { regex: new RegExp(m[1], m[2]), source: entry }; } catch (_) {}
+        }
+        return { name: normalizeSubFilter(entry), source: entry };
     }
 
     function parseHighlightEntry(entry) {
@@ -538,7 +546,7 @@
 
         const subsHint = document.createElement("div");
         subsHint.className = "hint";
-        subsHint.textContent = "One per line (e.g., anime, r/AITAH)";
+        subsHint.textContent = "One per line (e.g., r/AITAH, /india/ for regex)";
         modal.appendChild(subsHint);
 
         const subsTextarea = document.createElement("textarea");
@@ -658,14 +666,18 @@
         }
 
         // Load filter lists from storage (only when enabled)
-        // Sub exclusion: Set for O(1) lookup, Map to recover original name for stats
-        const subsRaw = loadValue(STORAGE_KEY_SUBS, []);
+        // Sub exclusion: Set for O(1) exact lookup, array for regex patterns
         const excludeSet = new Set();
         const excludeOriginal = new Map();
-        for (const sub of subsRaw) {
-            const norm = normalizeSubFilter(sub);
-            excludeSet.add(norm);
-            if (!excludeOriginal.has(norm)) excludeOriginal.set(norm, sub);
+        const excludeRegexes = [];
+        for (const sub of loadValue(STORAGE_KEY_SUBS, [])) {
+            const parsed = parseSubFilter(sub);
+            if (parsed.regex) {
+                excludeRegexes.push(parsed);
+            } else {
+                excludeSet.add(parsed.name);
+                if (!excludeOriginal.has(parsed.name)) excludeOriginal.set(parsed.name, parsed.source);
+            }
         }
 
         // Title keywords: combined regex for fast rejection, individual regexes to identify match
@@ -699,15 +711,25 @@
         const removalCounts = {};
 
         function tryRemoveBySub(thing, subLink, subName) {
-            if (!excludeSet.has(subName)) return false;
-            const sub = excludeOriginal.get(subName);
+            let matchedSub;
+            if (excludeSet.has(subName)) {
+                matchedSub = excludeOriginal.get(subName);
+            } else {
+                for (const { regex, source } of excludeRegexes) {
+                    if (regex.test(subName)) {
+                        matchedSub = source;
+                        break;
+                    }
+                }
+            }
+            if (!matchedSub) return false;
             console.log(
-                "[ViolentMonkey] removing thing, it matches " + sub,
+                "[ViolentMonkey] removing thing, it matches " + matchedSub,
                 subLink.href,
             );
             thing.remove();
             removed++;
-            const key = `sub:${sub}`;
+            const key = `sub:${matchedSub}`;
             removalCounts[key] = (removalCounts[key] || 0) + 1;
             return true;
         }
