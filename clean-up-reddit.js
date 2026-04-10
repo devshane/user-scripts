@@ -3,7 +3,7 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://old.reddit.com/*
 // @grant       none
-// @version     1.5
+// @version     1.6
 // @author      https://github.com/devshane
 // @description Clean up reddit by filtering posts by subreddit and title keywords
 // @updateURL   https://raw.githubusercontent.com/devshane/user-scripts/main/clean-up-reddit.js
@@ -745,15 +745,17 @@
         function tryRemoveByTitle(thing) {
             if (!combinedTitleRegex) return false;
             const title = thing.querySelector('a[class*="title"]');
-            if (!title) return false;
-            const text = title.innerText;
-            if (!combinedTitleRegex.test(text)) return false;
+            const flair = thing.querySelector('.linkflairlabel');
+            const titleText = title ? title.innerText : "";
+            const flairText = flair ? flair.innerText : "";
+            if (!combinedTitleRegex.test(titleText) && !combinedTitleRegex.test(flairText)) return false;
             // Match found — identify which keyword for stats
             for (let i = 0; i < titleRegexes.length; i++) {
-                if (titleRegexes[i].test(text)) {
+                if (titleRegexes[i].test(titleText) || titleRegexes[i].test(flairText)) {
+                    const matchedIn = titleRegexes[i].test(titleText) ? titleText : flairText;
                     console.log(
-                        "[ViolentMonkey] removing thing, title matches " + titleRegexes[i],
-                        text,
+                        "[ViolentMonkey] removing thing, title/flair matches " + titleRegexes[i],
+                        matchedIn,
                     );
                     thing.remove();
                     removed++;
